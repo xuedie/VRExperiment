@@ -1,4 +1,0 @@
-#Mon Nov 12 13:45:32 EST 2018
-base.0=/Users/nouyang/Desktop/VRInteractionExperiment/app/build/intermediates/transforms/dexMerger/debug/0
-path.0=classes.dex
-renamed.0=classes.dex
