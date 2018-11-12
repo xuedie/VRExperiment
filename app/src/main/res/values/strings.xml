@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">FittsTouchActivity</string>
+    <string name="app_name">FittsTouch</string>
+    <string name="setup_title">Setup</string>
+    <string name="setup_subtitle">(FittsTouch Experiment)</string>
+    <string name="button01text">OK</string>
+    <string name="button02text">Save</string>
+    <string name="button03text">Exit</string>
+    <string name="paramlabelparttext">Participant code</string>
+    <string name="paramlabelsesstext">Session code</string>
+    <string name="paramlabelblocktext">Block code</string>
+    <string name="paramlabelgrouptext">Group code</string>
+    <string name="paramlabelconditiontext">Condition code</string>
+    <string name="paramlabelmodetext">Mode</string>
+    <string name="paramlabelmode1d">1D</string>
+    <string name="paramlabelmode2d">2D</string>
+    <string name="paramlabelmodetap">Tap</string>
+    <string name="paramlabelmodedrag">Drag</string>
+    <string name="paramlabelmodezoom">Zoom</string>
+    <string name="paramlabelsessionstext">Number of test blocks</string>
+    <string name="paramlabeltargetstext">Number of circle targets</string>
+    <string name="paramlabeltaskstext">Number of tasks</string>
+    <string name="paramlabelcolumntext">Column</string>
+    <string name="paramlabelrowtext">Row</string>
+    <string name="paramlabelamplitudetext">Target amplitude (A)</string>
+    <string name="paramlabelwidthtext">Target width (W)</string>
+    <string name="paramvibrotactilefeedbacktext">Vibrotactile feedback</string>
+    <string name="paramauditoryfeedbacktext">Auditory feedback</string>
+    <string name="title_activity_zoom">ZoomActivity</string>
+
+</resources>
