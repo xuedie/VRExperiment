@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 /**
@@ -19,7 +20,6 @@ public class ZoomPanel extends View
     final int START_CICLE_DIAMETER = 53; // x pixelDensity = one-third inch
     final int GAP_BETWEEN_LINES = 6;
 
-    Target zoomTarget;
     Target startCircle;
 
     float panelWidth;
@@ -28,13 +28,13 @@ public class ZoomPanel extends View
     float d; // diameter of start circle (also used for positioning circle and text)
     float textSize;
     float gap;
-    boolean freezing, waitStartCircleSelect, done, showFingerCombination, showNextValue;
-    int waitSec;
+    boolean freezing, waitStartCircleSelect, done, showFingerCombination, showNextValue, isZoomIn;
 
-    Paint targetPaint, targetRimPaint, normalPaint, startPaint, gridPaint, destRimPaint, seletedPaint, draggingTargetRimPaint;
-    Paint crossPaint, freezingPaint, fingerPaint;
+    Paint targetPaint, targetRimPaint, startPaint;
+    Paint checkPaint, freezingPaint, fingerPaint, confirmationPaint, arrowPaint;
 
-    String[] resultsString = {"Tap to continue"};
+    String[] resultsString = {""};
+    String instructionString = "Tap to continue";
     String[] valueString = {"50", "50"};
     String[] combination = {"Index and Middle Fingers", "Index Finger and Thumb", "Both Thumbs", "Both Index Fingers"};
     String combinationString = "Right Index Finger";
@@ -64,11 +64,8 @@ public class ZoomPanel extends View
 
         float pixelDensity = c.getResources().getDisplayMetrics().density;
         d = START_CICLE_DIAMETER * pixelDensity;
-        startCircle = new Target(Target.CIRCLE, d, d, d, d, Target.NORMAL);
         textSize = START_TEXT_SIZE * pixelDensity;
         gap = GAP_BETWEEN_LINES * pixelDensity;
-        zoomTarget = new Target(Target.CIRCLE, 600, 600,
-                d, d, Target.NORMAL);
 
         freezing = false;
 
@@ -83,24 +80,6 @@ public class ZoomPanel extends View
         targetRimPaint.setStrokeWidth(2);
         targetRimPaint.setAntiAlias(true);
 
-        draggingTargetRimPaint = new Paint();
-        draggingTargetRimPaint.setColor(Color.MAGENTA);
-        draggingTargetRimPaint.setStyle(Paint.Style.STROKE);
-        draggingTargetRimPaint.setStrokeWidth(8);
-        draggingTargetRimPaint.setAntiAlias(true);
-
-        normalPaint = new Paint();
-        normalPaint.setColor(0xffff9999); // lighter red (to minimize distraction)
-        normalPaint.setStyle(Paint.Style.STROKE);
-        normalPaint.setStrokeWidth(2);
-        normalPaint.setAntiAlias(true);
-
-        seletedPaint = new Paint();
-        seletedPaint.setColor(Color.YELLOW); // lighter red (to minimize distraction)
-        seletedPaint.setStyle(Paint.Style.STROKE);
-        seletedPaint.setStrokeWidth(20);
-        seletedPaint.setAntiAlias(true);
-
         startPaint = new Paint();
         startPaint.setColor(0xff0000ff);
         startPaint.setStyle(Paint.Style.FILL);
@@ -113,28 +92,33 @@ public class ZoomPanel extends View
         freezingPaint.setAntiAlias(true);
         freezingPaint.setTextSize(textSize);
 
-        gridPaint = new Paint();
-        gridPaint.setColor(Color.GRAY); // lighter red (to minimize distraction)
-        gridPaint.setStyle(Paint.Style.FILL);
-        gridPaint.setAntiAlias(true);
+        confirmationPaint = new Paint();
+        confirmationPaint.setColor(Color.parseColor("#89B74E"));
+        confirmationPaint.setStyle(Paint.Style.FILL);
+        confirmationPaint.setAntiAlias(true);
+        confirmationPaint.setTextSize(textSize);
 
-        destRimPaint = new Paint();
-        destRimPaint.setColor(Color.BLUE);
-        destRimPaint.setStyle(Paint.Style.STROKE);
-        destRimPaint.setStrokeWidth(8);
-        destRimPaint.setAntiAlias(true);
+        checkPaint = new Paint();
+        checkPaint.setColor(Color.parseColor("#89B74E"));
+        checkPaint.setStyle(Paint.Style.STROKE);
+        checkPaint.setStrokeWidth(28);
+        checkPaint.setAntiAlias(true);
 
-        crossPaint = new Paint();
-        crossPaint.setColor(Color.parseColor("#89B74E"));
-        crossPaint.setStyle(Paint.Style.STROKE);
-        crossPaint.setStrokeWidth(28);
-        crossPaint.setAntiAlias(true);
+        arrowPaint = new Paint();
+        arrowPaint.setColor(Color.parseColor("#89B74E"));
+        arrowPaint.setStyle(Paint.Style.STROKE);
+        arrowPaint.setStrokeWidth(28);
+        arrowPaint.setAntiAlias(true);
 
         fingerPaint = new Paint();
         fingerPaint.setColor(0xff0000ff);
         fingerPaint.setStyle(Paint.Style.FILL);
         fingerPaint.setAntiAlias(true);
         fingerPaint.setTextSize(textSize * 3);
+    }
+
+    public void setStartTarget() {
+        startCircle = new Target(Target.CIRCLE, d, panelHeight - d, d, d, Target.NORMAL);
     }
 
     @Override
@@ -145,36 +129,76 @@ public class ZoomPanel extends View
             startPaint.setTextSize(textSize);
             canvas.drawCircle(startCircle.xCenter, startCircle.yCenter, startCircle.width / 2f,
                     startPaint);
+            canvas.drawText(instructionString, d / 2, panelHeight - d - 2 * (textSize + gap), startPaint);
             for (int i = 0; i < resultsString.length; ++i)
-                canvas.drawText(resultsString[i], d / 2, d / 2 + 2 * startCircle.width / 2f + (i + 1)
+                canvas.drawText(resultsString[i], d / 2, d / 2 + (i + 1)
                         * (textSize + gap), startPaint);
-        } else if (showNextValue) {
-            freezingPaint.setTextSize(textSize * 3);
-            canvas.drawText("Next", panelWidth / 4, panelHeight / 4 * 3 - 100, freezingPaint);
-            canvas.drawText(valueString[1], panelWidth / 2, panelHeight / 4 * 3 + gap, freezingPaint);
         } else {
-            Paint p = freezing ? freezingPaint : startPaint;
-            p.setTextSize(textSize * 3);
-            canvas.drawText("Current", panelWidth / 4, panelHeight / 4 - 100, p);
-            canvas.drawText(valueString[0], panelWidth / 2, panelHeight / 4 + gap, p);
-            canvas.drawText("Zoom to", panelWidth / 4, panelHeight / 4 * 3 - 100, p);
-            canvas.drawText(valueString[1], panelWidth / 2, panelHeight / 4 * 3 + gap, p);
-            if (freezing) {
-                canvas.drawLine(panelWidth / 4 * 3, panelHeight / 4,
-                        panelWidth / 4 * 3 + 100, panelHeight / 4 + 100, crossPaint);
+            Paint p = freezing ? (showNextValue ? freezingPaint : confirmationPaint) : startPaint;
+            p.setTextSize(textSize * 2);
+            canvas.drawText("Current", panelWidth / 4, panelHeight / 5 * 2 - 100, p);
+            p.setTextSize(textSize * 5);
+            canvas.drawText(valueString[0], panelWidth / 2, panelHeight / 5 * 2, p);
+            p.setTextSize(textSize * 2);
+            canvas.drawText("Zoom to", panelWidth / 4, panelHeight / 5 * 4 - 100, p);
+            p.setTextSize(textSize * 5);
+            canvas.drawText(valueString[1], panelWidth / 2, panelHeight / 5 * 4, p);
 
-                canvas.drawLine(panelWidth / 4 * 3 + 90,
-                        panelHeight / 4 + 95,
-                        panelWidth / 4 * 3 + 220,
-                        panelHeight / 4 - 100, crossPaint);
+            // draw direction arrows
+            if (showNextValue || !freezing) {
+                arrowPaint.setColor(p.getColor());
+                drawDirectionArrows(canvas);
             }
+        }
+
+        if (freezing && !showNextValue) {
+            canvas.drawLine(panelWidth / 4 * 3, panelHeight / 2,
+                    panelWidth / 4 * 3 + 100, panelHeight / 2 + 100, checkPaint);
+
+            canvas.drawLine(panelWidth / 4 * 3 + 90,
+                    panelHeight / 2 + 95,
+                    panelWidth / 4 * 3 + 220,
+                    panelHeight / 2 - 100, checkPaint);
         }
 
         if (showFingerCombination) {
             float w = fingerPaint.measureText(combinationString, 0, combinationString.length());
-            canvas.drawText(combinationString, (panelWidth - w) / 2, panelHeight / 1.5f , fingerPaint);
+            canvas.drawText(combinationString, (panelWidth - w) / 2, panelHeight / 2 , fingerPaint);
         }
         invalidate(); // will cause onDraw to run again immediately
+    }
+
+    void drawDirectionArrows(Canvas canvas) {
+        canvas.drawLine(panelWidth / 4 * 3, panelHeight / 2 - 50,
+                panelWidth / 4 * 3, panelHeight / 2 - 250, arrowPaint);
+
+        canvas.drawLine(panelWidth / 4 * 3, panelHeight / 2 + 50,
+                panelWidth / 4 * 3, panelHeight / 2 + 250, arrowPaint);
+        if (isZoomIn) {
+            canvas.drawLine(panelWidth / 4 * 3 + 7, panelHeight / 2 - 250,
+                    panelWidth / 4 * 3 - 50, panelHeight / 2 - 200, arrowPaint);
+
+            canvas.drawLine(panelWidth / 4 * 3 - 7, panelHeight / 2 - 250,
+                    panelWidth / 4 * 3 + 50, panelHeight / 2 - 200, arrowPaint);
+
+            canvas.drawLine(panelWidth / 4 * 3 + 7, panelHeight / 2 + 250,
+                    panelWidth / 4 * 3 - 50, panelHeight / 2 + 200, arrowPaint);
+
+            canvas.drawLine(panelWidth / 4 * 3 - 7, panelHeight / 2 + 250,
+                    panelWidth / 4 * 3 + 50, panelHeight / 2 + 200, arrowPaint);
+        } else {
+            canvas.drawLine(panelWidth / 4 * 3 + 7, panelHeight / 2 - 50,
+                    panelWidth / 4 * 3 - 50, panelHeight / 2 - 100, arrowPaint);
+
+            canvas.drawLine(panelWidth / 4 * 3 - 7, panelHeight / 2 - 50,
+                    panelWidth / 4 * 3 + 50, panelHeight / 2 - 100, arrowPaint);
+
+            canvas.drawLine(panelWidth / 4 * 3 + 7, panelHeight / 2 + 50,
+                    panelWidth / 4 * 3 - 50, panelHeight / 2 + 100, arrowPaint);
+
+            canvas.drawLine(panelWidth / 4 * 3 - 7, panelHeight / 2 + 50,
+                    panelWidth / 4 * 3 + 50, panelHeight / 2 + 100, arrowPaint);
+        }
     }
 
     @Override

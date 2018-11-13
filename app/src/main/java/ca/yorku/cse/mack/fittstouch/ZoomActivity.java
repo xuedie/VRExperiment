@@ -2,6 +2,7 @@ package ca.yorku.cse.mack.fittstouch;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.media.MediaScannerConnection;
 import android.os.Bundle;
 import android.os.Environment;
@@ -316,7 +317,7 @@ public class ZoomActivity extends Activity
     // trial data
     final String SD1_HEADER = "Participant,Session,Group,Combination,CurrentCombination,TrialIdx,BlockIdx,NumberOfScales,TrialTime(ms)\n";
     // scales per trial data
-    final String SD2_HEADER = "Participant,Session,Group,Combination,CurrentCombination,TrialIdx,BlockIdx,ScaleTime(ms),ScaleSpan\n";
+    final String SD2_HEADER = "Participant,Session,Group,Combination,CurrentCombination,TrialIdx,BlockIdx,ScaleNum,ScaleTime(ms),ScaleSpan\n";
     StringBuilder sb1, sb2, sb3, results;
     String participantCode, sessionCode, blockCode, groupCode;
     BufferedWriter sd1, sd2, sd3;
@@ -334,14 +335,15 @@ public class ZoomActivity extends Activity
     int numberOfCombinations = 4;
     int[] combinationOrders;
     int conditionCode, numberOfSessions, numberOfTrials;
-    int waitSec;
+    long waitSec0, waitSec1;
     String[] trialOrders;
     ScaleGestureDetector mScaleGestureDetector;
     Timer t;
+    MediaPlayer changeFingerSound, completeSound;
 
-    boolean firstScale;
+    boolean firstScale,firstTap;
     // start first scale of the trial
-    long trialStartTime;
+    long trialStartTime,tapStartTime;
     long currentStartTime;
     float startSpan;
     // -----
@@ -363,11 +365,13 @@ public class ZoomActivity extends Activity
         groupCode = b.getString("groupCode");
         conditionCode = b.getInt("conditionCode") + 1;
         moveMode = b.getString("mode");
-        numberOfSessions = b.getInt("numberOfTrials") + 1;
+        // + 2 practice blocks per finger
+        numberOfSessions = b.getInt("numberOfTrials") + 2;
         numberOfTrials = b.getInt("numberOfTasks");
         inValue = 75;
         outValue = 25;
-        waitSec = 2;
+        waitSec0 = 1;
+        waitSec1 = (long).75;
 
         fileInitialize();
 
@@ -383,6 +387,8 @@ public class ZoomActivity extends Activity
         zoomPanel.panelHeight = screenHeight;
         zoomPanel.waitStartCircleSelect = true;
         zoomPanel.showFingerCombination = true;
+        zoomPanel.showNextValue = false;
+        zoomPanel.setStartTarget();
 
         mScaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
 
@@ -400,20 +406,20 @@ public class ZoomActivity extends Activity
         configureFingerCombination();
         zoomPanel.combinationString = zoomPanel.combination[combinationOrders[0]];
 
-        zoomPanel.waitSec = waitSec;
+        changeFingerSound = MediaPlayer.create(this, R.raw.changefinger);
+        completeSound = MediaPlayer.create(this, R.raw.complete);
     }
 
     void freezeScreen() {
         zoomPanel.freezing = true;
         t = new Timer();
         if (trialIdx == 0) {
-            t.schedule(new FirstTrialTask(), waitSec / 2 * 1000);
+            t.schedule(new FirstTrialTask(), waitSec0 * 1000);
         } else if (trialIdx == numberOfTrials) {
-            t.schedule(new LastTrialTask(), waitSec / 2 * 1000);
+            t.schedule(new LastTrialTask(), waitSec0 * 1000);
         } else {
-            t.scheduleAtFixedRate(new UnfreezeTask(), waitSec / 2 * 1000, waitSec * 1000);
+            t.scheduleAtFixedRate(new UnfreezeTask(), waitSec0 * 1000, (waitSec0 + waitSec1) * 1000);
         }
-
     }
 
     class LastTrialTask extends  TimerTask {
@@ -432,13 +438,15 @@ public class ZoomActivity extends Activity
     class FirstTrialTask extends  TimerTask {
         FirstTrialTask() {
             zoomPanel.showNextValue = true;
+            zoomPanel.valueString[0] = "" + Math.round(scaleValue);
             zoomPanel.valueString[1] = "" + trialValues[trialIdx];
+            Log.e(MYDEBUG, "FirstTrialTask start");
         }
         public void run() {
             zoomPanel.showNextValue = false;
             zoomPanel.freezing = false;
             t.cancel();
-            zoomPanel.valueString[0] = "" + Math.round(scaleValue);
+            Log.e(MYDEBUG, "FirstTrialTask timeout");
         }
     }
 
@@ -452,13 +460,13 @@ public class ZoomActivity extends Activity
             if (!showNext) {
                 showNext = true;
                 zoomPanel.showNextValue = true;
+                zoomPanel.valueString[0] = "" + Math.round(scaleValue);
                 zoomPanel.valueString[1] = "" + trialValues[trialIdx];
                 //Log.e(MYDEBUG, "First timeout");
             } else {
                 zoomPanel.showNextValue = false;
                 zoomPanel.freezing = false;
                 t.cancel();
-                zoomPanel.valueString[0] = "" + Math.round(scaleValue);
                 //Log.e(MYDEBUG, "Second timeout");
             }
         }
@@ -589,6 +597,10 @@ public class ZoomActivity extends Activity
         if (zoomPanel.waitStartCircleSelect)
             return true;
 
+        if (firstTap && me.getAction() == MotionEvent.ACTION_DOWN) {
+            tapStartTime = System.nanoTime();
+            firstTap = false;
+        }
         mScaleGestureDetector.onTouchEvent(me);
         return true;
     }
@@ -599,7 +611,6 @@ public class ZoomActivity extends Activity
         if (trialIdx < numberOfSessions)
         {
             setTrialValues();
-            trialStartTime = System.nanoTime(); // last "now" value is start of trial
         }
 
         trialIdx = 0;
@@ -711,7 +722,8 @@ public class ZoomActivity extends Activity
     void endOfTrial() {
         // record data
         long now = System.nanoTime();
-        String trialTime = String.format("%.1f", (now - trialStartTime) / 1000000.0f);
+        // String trialTime = String.format("%.1f", (now - trialStartTime) / 1000000.0f);
+        String trialTime = String.format("%.1f", (now - tapStartTime) / 1000000.0f);
         sb1.append(String.format("%s,%s,%s,%d," +
                         "%s,%d,%d,%d,%s\n",
                 participantCode, sessionCode, groupCode, conditionCode,
@@ -721,7 +733,6 @@ public class ZoomActivity extends Activity
 
         trialIdx++;
         if (trialIdx == numberOfTrials) {
-            zoomPanel.freezing = true;
             freezeScreen();
         }
         else
@@ -731,9 +742,10 @@ public class ZoomActivity extends Activity
     void advanceTask() {
         scaleCount = 0;
         scaleValue = 50f;
-        zoomPanel.freezing = true;
         freezeScreen();
         firstScale = true;
+        firstTap = true;
+        zoomPanel.isZoomIn = trialValues[trialIdx] - scaleValue > 0;
     }
 
     void doEndSequence()
@@ -775,10 +787,12 @@ public class ZoomActivity extends Activity
                     blockIdx = 0;
                     zoomPanel.showFingerCombination = true;
                     zoomPanel.combinationString = zoomPanel.combination[combinationOrders[combinationIdx]];
+                    changeFingerSound.start();
                 } else {
                     zoomPanel.done = true;
                     zoomPanel.showFingerCombination = true;
                     zoomPanel.combinationString = "End of Zoom Experiment";
+                    completeSound.start();
                 }
             }
         zoomPanel.waitStartCircleSelect = true;
@@ -791,7 +805,6 @@ public class ZoomActivity extends Activity
         {
             sd1.close();
             sd2.close();
-            sd3.close();
 
             /*
              * Make the saved data files visible in Windows Explorer. There seems to be bug doing
@@ -805,6 +818,8 @@ public class ZoomActivity extends Activity
         {
             Log.d("MYDEBUG", "FILE CLOSE ERROR! e = " + e);
         }
+        completeSound.release();
+        changeFingerSound.release();
         Intent i = new Intent(getApplicationContext(), FittsTouchSetup.class);
         startActivity(i);
         finish();

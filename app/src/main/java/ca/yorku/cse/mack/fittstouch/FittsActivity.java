@@ -400,7 +400,7 @@ public class FittsActivity extends Activity
     int[] combinationOrders;
     String[] trialOrders;
     Vibrator vib;
-    MediaPlayer missSound;
+    MediaPlayer missSound, changeFingerSound, completeSound;
     StringBuilder sb1, sb2, results;
 
     // new stuff to streamline calculation of Throughput
@@ -484,12 +484,15 @@ public class FittsActivity extends Activity
         expPanel.moveMode = moveMode;
         expPanel.waitStartCircleSelect = true;
         expPanel.showFingerCombination = true;
+        expPanel.setStartTarget();
 
         vib = (Vibrator)
 
                 getSystemService(Context.VIBRATOR_SERVICE);
 
         missSound = MediaPlayer.create(this, R.raw.miss);
+        changeFingerSound = MediaPlayer.create(this, R.raw.changefinger);
+        completeSound = MediaPlayer.create(this, R.raw.complete);
 
         numberOfTrials = numberOfTargets;
 
@@ -933,10 +936,12 @@ public class FittsActivity extends Activity
                     blockIdx = 0;
                     expPanel.showFingerCombination = true;
                     expPanel.combinationString = expPanel.combination[combinationOrders[combinationInd]];
+                    changeFingerSound.start();
                 } else {
                     expPanel.done = true;
                     expPanel.showFingerCombination = true;
                     expPanel.combinationString = "End of Tap Experiment";
+                    completeSound.start();
                 }
             }
 

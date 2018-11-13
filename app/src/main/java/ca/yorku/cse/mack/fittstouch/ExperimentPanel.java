@@ -39,7 +39,8 @@ public class ExperimentPanel extends View
     String moveMode;
     Paint targetPaint, targetRimPaint, normalPaint, startPaint, gridPaint, destRimPaint, seletedPaint, draggingTargetRimPaint;
     Paint crossPaint, fingerPaint;
-    String[] resultsString = {"Tap to continue"};
+    String instructionString = "Tap to continue";
+    String[] resultsString = {""};
     String[] combination = {"Right Index Finger", "Left Index Finger", "Both Thumbs"};
     String combinationString = "Right Index Finger";
 
@@ -132,6 +133,10 @@ public class ExperimentPanel extends View
         crossPaint.setAntiAlias(true);
     }
 
+    public void setStartTarget() {
+        startCircle = new Target(Target.CIRCLE, d, panelHeight - d, d, d, Target.NORMAL);
+    }
+
     @Override
     protected void onDraw(Canvas canvas)
     {
@@ -139,10 +144,10 @@ public class ExperimentPanel extends View
         {
             canvas.drawCircle(startCircle.xCenter, startCircle.yCenter, startCircle.width / 2f,
                     startPaint);
+            canvas.drawText(instructionString, d / 2, panelHeight - d - 2 * (textSize + gap), startPaint);
             for (int i = 0; i < resultsString.length; ++i)
-                canvas.drawText(resultsString[i], d / 2, d / 2 + 2 * startCircle.width / 2f + (i + 1)
+                canvas.drawText(resultsString[i], d / 2, d / 2 + (i + 1)
                         * (textSize + gap), startPaint);
-
         } else if (!done) // draw task targets
         {
             for (Target value : targetSet)
@@ -174,7 +179,7 @@ public class ExperimentPanel extends View
         }
         if (showFingerCombination) {
             float w = fingerPaint.measureText(combinationString, 0, combinationString.length());
-            canvas.drawText(combinationString, (panelWidth - w) / 2, panelHeight / 1.5f , fingerPaint);
+            canvas.drawText(combinationString, (panelWidth - w) / 2, panelHeight / 2 , fingerPaint);
         }
         invalidate(); // will cause onDraw to run again immediately
     }
