@@ -1,7 +1,7 @@
 # VRExperiment
 * Experiment Setup
- - ID
- - Number of test blocks
+  - ID
+  - Number of test blocks
 * Selection
   - base on https://www.yorku.ca/mack/FittsLawSoftware/
 * Zoom
