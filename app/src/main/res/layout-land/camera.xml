@@ -5,8 +5,8 @@
     android:gravity="center_horizontal"
     android:orientation="vertical">
 
-    <ca.yorku.cse.mack.fittstouch.ZoomPanel
-        android:id="@+id/zoompanel"
+    <ca.yorku.cse.mack.fittstouch.CameraPanel
+        android:id="@+id/camerapanel"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:orientation="vertical" />

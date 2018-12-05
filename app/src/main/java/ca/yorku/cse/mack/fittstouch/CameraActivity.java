@@ -1,14 +1,11 @@
 package ca.yorku.cse.mack.fittstouch;
 
+import android.app.Activity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import java.io.IOException;
-import java.util.Random;
-import java.util.StringTokenizer;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * <h1>FittsTouch</h1>
@@ -345,9 +342,11 @@ import java.util.TimerTask;
  * @author (c) Scott MacKenzie, 2013-2015
  */
 
-public class FittsTouchActivity extends FittsActivity implements View.OnTouchListener
+public class CameraActivity extends Activity implements View.OnTouchListener
 {
-    boolean targetTapped, multiTouch;
+    CameraPanel cameraPanel;
+    int numberOfTargetColumns, numberOfTargets, numberOfTargetRows;
+    float screenHeight, xCenter, yCenter;
     // -----
     /**
      * Called when the activity is first created.
@@ -356,9 +355,27 @@ public class FittsTouchActivity extends FittsActivity implements View.OnTouchLis
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        expPanel.setOnTouchListener(this);
-        targetTapped = false;
-        multiTouch = false;
+        setContentView(R.layout.camera);
+
+        Bundle b = getIntent().getExtras();
+        numberOfTargetColumns = b.getInt("numberOfTargetColumns");
+        numberOfTargetRows = b.getInt("numberOfTargetRows");
+        numberOfTargets = numberOfTargetColumns * numberOfTargetRows;
+
+        cameraPanel = (CameraPanel) findViewById(R.id.camerapanel);
+        DisplayMetrics dm = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        int screenWidth = dm.widthPixels;
+        screenHeight = dm.heightPixels;
+        xCenter = screenWidth / 2f;
+        yCenter = screenHeight / 2f;
+
+        cameraPanel.panelWidth = screenWidth;
+        cameraPanel.panelHeight = screenHeight;
+        cameraPanel.panelColumns = numberOfTargetColumns;
+        cameraPanel.panelRows = numberOfTargetRows;
+        cameraPanel.targetSet = new Target[numberOfTargets];
+        configureTargets();
     }
 
     @Override
@@ -366,163 +383,23 @@ public class FittsTouchActivity extends FittsActivity implements View.OnTouchLis
     {
         float x = me.getX();
         float y = me.getY();
-
-        if (expPanel.isVisibilityTest) {
-            expPanel.isVisibilityTest = false;
-            return true;
-        }
-
-        if (expPanel.waitStartCircleSelect && me.getAction() == MotionEvent.ACTION_UP)
-        {
-            if (!expPanel.startCircle.inTarget(x, y))
-                return true;
-            else
-                doStartCircleSelected();
-            lastFingerUpTime = System.nanoTime();
-            return true;
-        }
-
-        if (expPanel.waitStartCircleSelect)
-            return true;
-
-        // detect hit/miss when down/up
-        if (me.getAction() == MotionEvent.ACTION_DOWN)
-        {
-            doFingerDown(x, y);
-        } else if (me.getAction() == MotionEvent.ACTION_UP)
-        {
-            doFingerUp(x, y);
-        } else if (me.getAction() == MotionEvent.ACTION_MOVE)
-        {
-            doFingerPressed(x, y);
-        }
         return true;
     }
 
-    public void doFingerDown(float xArg, float yArg)
+    public void configureTargets()
     {
-        xFingerDown = xArg;
-        yFingerDown = yArg;
-        fingerDownTime = System.nanoTime();
-
-        float bt = (fingerDownTime - lastFingerUpTime) / 1000000.0f;
-        multiTouch = bt <= TOUCH_THRESHOLD_MS;
-        // Log.d("MultiClick", String.format("%.2f",bt));
-
-        if (expPanel.toTarget != null)
-        {
-            boolean isInTarget = expPanel.toTarget.inTarget(xArg, yArg);
-            if (isInTarget) {
-                targetTapped = true;
-                fingerDownMiss = 0;
-                expPanel.toTarget.status = Target.TAPPINGSELECTED;
-            } else {
-                expPanel.toTarget.status = Target.TARGET;
-                fingerDownMiss = 1;
+        // only one size target
+        float rowWidth = cameraPanel.panelWidth * 1.0f / numberOfTargetColumns;
+        float columnWidth = cameraPanel.panelHeight * 1.0f / numberOfTargetRows;
+        float targetWidth = rowWidth < columnWidth ? rowWidth : columnWidth;
+        for (int i = 0; i < numberOfTargetColumns; ++i)
+            for (int j = 0; j < numberOfTargetRows; ++j)
+            {
+                float x = (2 * i + 1) * rowWidth / 2.0f;
+                float y = (2 * j + 1) * columnWidth / 2.0f;
+                cameraPanel.targetSet[i + j * numberOfTargetColumns] = new Target(Target.CIRCLE, x, y, targetWidth, targetWidth,
+                        Target.NORMAL);
             }
-        }
-    }
-
-    public void doFingerPressed(float xArg, float yArg)
-    {
-        if (expPanel.toTarget != null)
-        {
-            boolean isInTarget = expPanel.toTarget.inTarget(xArg, yArg);
-            if (isInTarget) {
-                targetTapped = true;
-                expPanel.toTarget.status = Target.TAPPINGSELECTED;
-            } else {
-                expPanel.toTarget.status = Target.TARGET;
-            }
-        }
-    }
-
-    public void doFingerUp(float xSelect, float ySelect)
-    {
-        boolean isInTarget = expPanel.toTarget.inTarget(xSelect, ySelect);
-        fingerUpMiss = isInTarget ? 0 : 1;
-
-        now = System.nanoTime(); // current "now" value is end of trial
-
-        // set back to normal status
-        expPanel.toTarget.status = Target.TARGET;
-
-        // hit or miss? (respond appropriately)
-        trialMiss = isInTarget ? 0 : 1;
-
-        if (trialMiss == 1 && !multiTouch)
-        {
-            // provide feedback (as per setup) but only if the user misses the target
-            if (vibrotactileFeedback)
-                vib.vibrate(VIBRATION_PULSE_DURATION);
-            if (auditoryFeedback)
-                missSound.start();
-            trialMissCount++;
-        }
-
-        if (!sequenceStarted) // 1st target selection (beginning of sequence)
-        {
-            sequenceStarted = true;
-            sequenceStartTime = now;
-            expPanel.fromTarget = expPanel.targetSet[0];
-            sb1 = new StringBuilder();
-            sb2 = new StringBuilder();
-            results = new StringBuilder();
-        }
-
-        calculateTrialData(xSelect, ySelect);
-
-        //Log.d("Miss", String.format("Trial Miss: %d, DownMiss: %d, UpMiss: %d", trialMiss, fingerDownMiss, fingerUpMiss));
-
-        // two touches too close, then do not move to next target
-        if (multiTouch) {
-            Log.d("MultiClick", "Click too quick");
-            lastFingerUpTime = now;
-            trialStartTime = now;
-            return;
-        }
-
-        lastFingerUpTime = now;
-        // prepare for next target selection
-        ++selectionCount;
-        targetTapped = false;
-        fingerUpMiss = 1;
-        fingerDownMiss = 1;
-
-        if (selectionCount == numberOfTrials)
-            doEndSequence();
-        else
-            advanceTarget();
-    }
-
-    // advance to the next target (a bit complicated for the 2D task; see comment below)
-    private void advanceTarget()
-    {
-        /*
-         * Find the current "target" then advance it to the circle on the opposite side of the
-         * layout circle. This is a bit tricky since every second advance requires the target to be
-         * beside the target directly opposite the last target. This is needed to get the sequence
-         * of selections to advance around the layout circle. Of course, this only applies to
-         * the 2D
-         * task.
-         */
-
-        // find current target
-        int i;
-        for (i = 0; i < expPanel.targetSet.length; ++i)
-            if (expPanel.targetSet[i].status == Target.TARGET)
-                break; // i is index of current target
-
-        // last target becomes "normal" again
-        expPanel.targetSet[i].status = Target.NORMAL;
-
-        // find next target
-        int next = targetOrders[selectionCount];
-        expPanel.targetSet[next].status = Target.TARGET;
-        expPanel.fromTarget = expPanel.targetSet[i];
-        expPanel.toTarget = expPanel.targetSet[next];
-        even = !even;
-
-        trialStartTime = System.nanoTime(); // last "now" value is start of trial
+        // Don't set target yet. This is done when start circle is selected.
     }
 }

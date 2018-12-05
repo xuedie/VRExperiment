@@ -14,25 +14,17 @@ import android.view.View;
  *
  * @author Scott MacKenzie
  */
-public class ZoomPanel extends View
+public class ZoomPanel extends Panel
 {
-    final int START_TEXT_SIZE = 14; // may need to fiddle with this, depending on device
-    final int START_CICLE_DIAMETER = 53; // x pixelDensity = one-third inch
-    final int GAP_BETWEEN_LINES = 6;
-
     Target startCircle;
 
-    float panelWidth;
-    float panelHeight;
-
-    float d; // diameter of start circle (also used for positioning circle and text)
-    float textSize;
-    float gap;
     boolean freezing, waitStartCircleSelect, done, showFingerCombination, showNextValue, isZoomIn;
+    boolean isVisibilityTest;
 
-    Paint targetPaint, targetRimPaint, startPaint;
-    Paint checkPaint, freezingPaint, fingerPaint, confirmationPaint, arrowPaint;
+    Paint startPaint;
+    Paint checkPaint, freezingPaint, fingerPaint, confirmationPaint, arrowPaint, visibilityPaint;
 
+    String[] visibilityWords = {"zh","kx","ov","hw","ui","eg","ut","gf"};
     String[] resultsString = {""};
     String instructionString = "Tap to continue";
     String[] valueString = {"50", "50"};
@@ -58,33 +50,23 @@ public class ZoomPanel extends View
     }
 
     // things that can be initialized from within this View
-    private void initialize(Context c)
+    protected void initialize(Context c)
     {
-        this.setBackgroundColor(Color.LTGRAY);
-
-        float pixelDensity = c.getResources().getDisplayMetrics().density;
-        d = START_CICLE_DIAMETER * pixelDensity;
-        textSize = START_TEXT_SIZE * pixelDensity;
-        gap = GAP_BETWEEN_LINES * pixelDensity;
+        super.initialize(c);
 
         freezing = false;
-
-        targetPaint = new Paint();
-        targetPaint.setColor(0xffffaaaa);
-        targetPaint.setStyle(Paint.Style.FILL);
-        targetPaint.setAntiAlias(true);
-
-        targetRimPaint = new Paint();
-        targetRimPaint.setColor(Color.RED);
-        targetRimPaint.setStyle(Paint.Style.STROKE);
-        targetRimPaint.setStrokeWidth(2);
-        targetRimPaint.setAntiAlias(true);
 
         startPaint = new Paint();
         startPaint.setColor(0xff0000ff);
         startPaint.setStyle(Paint.Style.FILL);
         startPaint.setAntiAlias(true);
         startPaint.setTextSize(textSize);
+
+        visibilityPaint = new Paint();
+        visibilityPaint.setColor(0xff0000ff);
+        visibilityPaint.setStyle(Paint.Style.FILL);
+        visibilityPaint.setAntiAlias(true);
+        visibilityPaint.setTextSize(visibilitySize);
 
         freezingPaint = new Paint();
         freezingPaint.setColor(Color.DKGRAY);
@@ -118,21 +100,34 @@ public class ZoomPanel extends View
     }
 
     public void setStartTarget() {
-        startCircle = new Target(Target.CIRCLE, d, panelHeight - d, d, d, Target.NORMAL);
+        startCircle = new Target(Target.CIRCLE, panelWidth / 2, panelHeight - d, d, d, Target.NORMAL);
     }
 
     @Override
     protected void onDraw(Canvas canvas)
     {
+        if (isVisibilityTest) {
+            drawVisibilityTest(canvas);
+            invalidate();
+            return;
+        }
+
+        if (isResting) {
+            drawRestTimer(canvas);
+            invalidate();
+            return;
+        }
+
         if (waitStartCircleSelect) // draw start circle and prompt/results string
         {
             startPaint.setTextSize(textSize);
+            float tw = startPaint.measureText(instructionString, 0, instructionString.length()) / 2;
             canvas.drawCircle(startCircle.xCenter, startCircle.yCenter, startCircle.width / 2f,
                     startPaint);
-            canvas.drawText(instructionString, d / 2, panelHeight - d - 2 * (textSize + gap), startPaint);
-            for (int i = 0; i < resultsString.length; ++i)
-                canvas.drawText(resultsString[i], d / 2, d / 2 + (i + 1)
-                        * (textSize + gap), startPaint);
+            canvas.drawText(instructionString, panelWidth / 2 - tw, panelHeight - d - 2 * (textSize + gap), startPaint);
+//            for (int i = 0; i < resultsString.length; ++i)
+//                canvas.drawText(resultsString[i], d / 2, d / 2 + (i + 1)
+//                        * (textSize + gap), startPaint);
         } else {
             Paint p = freezing ? (showNextValue ? freezingPaint : confirmationPaint) : startPaint;
             p.setTextSize(textSize * 2);
@@ -151,6 +146,7 @@ public class ZoomPanel extends View
             }
         }
 
+        // draw check mark
         if (freezing && !showNextValue) {
             canvas.drawLine(panelWidth / 4 * 3, panelHeight / 2,
                     panelWidth / 4 * 3 + 100, panelHeight / 2 + 100, checkPaint);
@@ -201,9 +197,19 @@ public class ZoomPanel extends View
         }
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec)
-    {
-        setMeasuredDimension((int) panelWidth, (int) panelHeight);
+    void drawVisibilityTest(Canvas canvas) {
+        float w = visibilityPaint.measureText(visibilityWords[0], 0, visibilityWords[0].length()) / 2;
+        canvas.drawText(visibilityWords[0], gap, gap * 2, visibilityPaint);
+        canvas.drawText(visibilityWords[1], panelWidth / 2 - w, gap * 2, visibilityPaint);
+        canvas.drawText(visibilityWords[2], panelWidth - gap - w * 2, gap * 2, visibilityPaint);
+
+        // middle
+        canvas.drawText(visibilityWords[3], gap, panelHeight / 2, visibilityPaint);
+        canvas.drawText(visibilityWords[4], panelWidth - gap - w * 2, panelHeight / 2, visibilityPaint);
+
+        // bottom
+        canvas.drawText(visibilityWords[5], gap, panelHeight - gap, visibilityPaint);
+        canvas.drawText(visibilityWords[6], panelWidth / 2 - w, panelHeight - gap, visibilityPaint);
+        canvas.drawText(visibilityWords[7], panelWidth - gap - w * 2, panelHeight - gap, visibilityPaint);
     }
 }

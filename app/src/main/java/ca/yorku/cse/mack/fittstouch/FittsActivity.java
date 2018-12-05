@@ -25,6 +25,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Random;
 import java.util.StringTokenizer;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * <h1>FittsTouch</h1>
@@ -376,6 +378,10 @@ public class FittsActivity extends Activity
             "Ae,We,IDe,MT(ms),ErrorRate(%),TP(bps)\n";
     final float TWO_TIMES_PI = 6.283185307f;
     final int VIBRATION_PULSE_DURATION = 10;
+    final int REST_TIME = 10;
+    final float TOUCH_THRESHOLD_MS = 200f;
+
+    Timer t;
 
     ExperimentPanel expPanel;
     String participantCode, sessionCode, blockCode, groupCode;
@@ -391,7 +397,7 @@ public class FittsActivity extends Activity
 
     float xCenter, yCenter, screenHeight;
     float xFingerDown, yFingerDown;
-    long fingerDownTime, trialStartTime, now, sequenceStartTime;
+    long fingerDownTime, trialStartTime, now, sequenceStartTime, lastFingerUpTime;
     boolean even, sequenceStarted, waitTargetSelected;
     int blockIdx, selectionCount, trialMiss, fingerUpMiss, fingerDownMiss;
     int[] targetOrders;
@@ -469,6 +475,10 @@ public class FittsActivity extends Activity
         expPanel = (ExperimentPanel)findViewById(R.id.experimentpanel);
         expPanel.waitStartCircleSelect = true;
 
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(decorView.SYSTEM_UI_FLAG_IMMERSIVE | decorView.SYSTEM_UI_FLAG_FULLSCREEN
+                | decorView.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+
         // determine screen width and height
         DisplayMetrics dm = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(dm);
@@ -485,6 +495,7 @@ public class FittsActivity extends Activity
         expPanel.waitStartCircleSelect = true;
         expPanel.showFingerCombination = true;
         expPanel.setStartTarget();
+        expPanel.isVisibilityTest = true;
 
         vib = (Vibrator)
 
@@ -572,12 +583,14 @@ public class FittsActivity extends Activity
          * filename is found.  The goal, of course, is to ensure data files are not inadvertently overwritten.
          */
         int blockNumber = 0;
+        Long tsLong = System.currentTimeMillis()/1000;
+        String ts = tsLong.toString();
         do
         {
             ++blockNumber;
             String blockCode = String.format("B%02d", blockNumber);
-            String baseFilename = String.format("%s-%s-%s-%s-%d-%s", APP, participantCode,
-                    sessionCode, groupCode, conditionCode, moveMode);
+            String baseFilename = String.format("%s-%s-%s-%s-%d-%s-%s", APP, participantCode,
+                    sessionCode, groupCode, conditionCode, moveMode, ts);
 
             f1 = new File(dataDirectory, baseFilename + ".sd1");
             //f2 = new File(dataDirectory, baseFilename + ".sd2");
@@ -636,7 +649,7 @@ public class FittsActivity extends Activity
             super.onDestroy(); // cleanup
             this.finish(); // terminate
         }
-        f2 = new File(dataDirectory, "randomTargetOrders.sd2");
+        f2 = new File(dataDirectory, "Tap-randomTargetOrders.sd2");
         trialOrders = new String[numberOfSessions];
         // read file
         if (f2.exists()) {
@@ -937,6 +950,7 @@ public class FittsActivity extends Activity
                     expPanel.showFingerCombination = true;
                     expPanel.combinationString = expPanel.combination[combinationOrders[combinationInd]];
                     changeFingerSound.start();
+                    restTimerCountdown(REST_TIME);
                 } else {
                     expPanel.done = true;
                     expPanel.showFingerCombination = true;
@@ -948,6 +962,31 @@ public class FittsActivity extends Activity
         expPanel.waitStartCircleSelect = true;
         sequenceStarted = false;
         trialMissCount = 0;
+    }
 
+    void restTimerCountdown(int time) {
+        t = new Timer();
+        t.scheduleAtFixedRate(new RestTask(time),  1000,  1000);
+    }
+
+    class RestTask extends TimerTask {
+        int cur;
+        RestTask(int t) {
+            expPanel.isResting = true;
+            cur = t;
+            expPanel.restTimer[1] = "0:" + cur;
+            //Log.e(MYDEBUG, "resting start");
+        }
+        public void run() {
+            cur--;
+            expPanel.restTimer[1] = "0:" + cur;
+            if (cur < 10)
+                expPanel.restTimer[1] = "0:0" + cur;
+            // Log.e(MYDEBUG, String.format("resting %d", cur));
+            if (cur <= 0) {
+                expPanel.isResting = false;
+                t.cancel();
+            }
+        }
     }
 }

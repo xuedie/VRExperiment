@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Surface;
 import android.view.View;
@@ -77,6 +78,14 @@ public class FittsTouchSetup extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.setup);
 
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(decorView.SYSTEM_UI_FLAG_IMMERSIVE | decorView.SYSTEM_UI_FLAG_FULLSCREEN
+                | decorView.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+
+        DisplayMetrics dm = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        int screenWidth = dm.widthPixels;
+        int screenHeight = dm.heightPixels;
         /*
          * Initialize reference to shared preferences. NOTE: The values saved are the default
          * values.
@@ -254,8 +263,10 @@ public class FittsTouchSetup extends Activity
         Intent i;
         if (moveMode.equals("Tap")) {
             i = new Intent(getApplicationContext(), FittsTouchActivity.class);
-        } else {
+        } else if (moveMode.equals("Zoom")){
             i = new Intent(getApplicationContext(), ZoomActivity.class);
+        } else {
+            i = new Intent(getApplicationContext(), CameraActivity.class);
         }
         i.putExtras(b);
         startActivity(i);
@@ -278,6 +289,10 @@ public class FittsTouchSetup extends Activity
         spe.putBoolean("auditoryFeedback", checkAuditoryFeedback.isChecked());
         spe.apply();
         Toast.makeText(this, "Preferences saved!", Toast.LENGTH_SHORT).show();
+
+        view.setSystemUiVisibility(
+                view.SYSTEM_UI_FLAG_IMMERSIVE | view.SYSTEM_UI_FLAG_FULLSCREEN | view.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                        view.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
 
     // called when the "Exit" button is pressed
@@ -297,12 +312,17 @@ public class FittsTouchSetup extends Activity
             rowTrialText.setVisibility(View.VISIBLE);
             rowTrial.setVisibility(View.VISIBLE);
         }
-        else {
+        else if (v == radioButtonModeZoom){
             moveMode = "Zoom";
             spinCondition.setAdapter(adapterCZ);
             rowTasks.setVisibility(View.VISIBLE);
             rowTrialText.setVisibility(View.GONE);
             rowTrial.setVisibility(View.GONE);
+        } else {
+            moveMode = "Camera";
+            rowTasks.setVisibility(View.GONE);
+            rowTrialText.setVisibility(View.VISIBLE);
+            rowTrial.setVisibility(View.VISIBLE);
         }
     }
 }

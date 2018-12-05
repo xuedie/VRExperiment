@@ -10,6 +10,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.View;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -122,50 +123,6 @@ import java.util.TimerTask;
  * <p>
  *
  * <tr>
- * <td valign="top">Mode
- * <td>Set to either "1D" or "2D" to control whether the task is one-dimensional or two-dimensional.
- * <p>
- *
- * <tr>
- * <td colspan=2 valign=center>
- * NOTE: The setup parameters above appear in the filename for the output data files (e.g.,
- * <code>FittsTouch-P01-S01-B01-G01-C01-1D.sd1</code>). They also appear as data columns in the
- * output data files.
- *
- * <tr>
- * <td valign="top">Number of trials (1D)
- * <td>Specifies the number of back-and-forth selections in a block of trials. This setup parameter
- * is only relevant if Mode = 1D.
- * <p>
- *
- * <tr>
- * <td valign="top">Number of targets (2D)
- * <td>Specifies the number of targets that appear in the layout circle. This setup parameter is
- * only relevant if Mode = 2D.
- * <p>
- *
- * <tr>
- * <td valign="top">Target amplitude (A)
- * <td>Specifies either the diameter of the layout circle (2D) or the center-to-center distance
- * between targets (1D). The spinner offers three choices: "120, 240, 480", "250, 500", or "500"
- * (but see note 2 below).
- * <p>
- *
- * <tr>
- * <td valign="top">Target width (W)
- * <td>Specifies the width of targets. This is either the diameter of the target circles (2D) or the
- * width of the rectangles (1D). The spinner offers three choices: "60, 100", "30, 60, 120", or
- * "100",
- * <p>
- *
- * Notes:<br>
- * 1. The total number of <i>A-W</i> conditions (sequences) in a block is <i>n &times; m</i>, where
- * <i>n</i> is the number of target amplitudes and <i>m</i> is the number of target widths.<br>
- * 2. The <i>A-W</i> values are scaled such that the widest condition (largest A, largest W) spans
- * the device's display with minus 10 pixels on each side.
- * <p>
- *
- * <tr>
  * <td valign="top">Vibrotactile feedback
  * <td>A checkbox parameter. If checked, a 10 ms vibrotactile pulse is emitted if a target is
  * selected in error (i.e., the finger tap is outside the target).
@@ -237,28 +194,7 @@ import java.util.TimerTask;
  *      Block - block code
  *      Group - group code
  *      Condition - condition code
- *      Mode - mode code (1D or 2D)
- *      Trial - trial number
- *      A - target amplitude
- *      W - target width
- *      FromX - x coordinate of center of from-target
- *      FromY - y coordinate of center of from-target
- *      TargetX - x coordinate of center of to-target
- *      TargetY - y coordinate of center of to-target
- *      FingerDownX - x coordinate of finger-down event at end of trial
- *      FingerDownY - y coordinate of finger-down event at end of trial
- *      SelectX - x coordinate of finger-up event at end of trial (target selection)
- *      SelectY - y coordinate of finger-up event at end of trial (target selection)
- *      xDelta - (see below)
- *      FingerDownUpDelta - Pythagorean distance between finger-down and finger-up events
- *      FingerDownUpTime - time in ms between finger-down and finger-up events
- *      DistanceFromTargetCenter - Pythagorean distance from selection coordinate to target center
- *      Miss - 0 = target selected, 1 = target missed
- *      MT - movement time in ms for the trial
  * </pre>
- *
- * Note: All sizes, distances, and coordinates are in pixel units for the test device.
- * <p>
  *
  * <code>xDelta</code> is the <i>x</i>-distance from the selection coordinate to the center of the
  * target. It is normalized relative to the center of the target and to the task axis. For example,
@@ -294,18 +230,6 @@ import java.util.TimerTask;
  *      Block - block code
  *      Group - group code
  *      Condition - condition code
- *      Mode - mode code (1D or 2D)
- *      Trials - number of trials in the sequence
- *      SequenceRepeatCount - number of times the sequence was repeated (see below)
- *      A - specified target amplitude
- *      W - specified target width
- *      ID - specified index of difficulty
- *      Ae - actual or effective movement amplitude
- *      We - actual or effective target width
- *      IDe - actual or effective index of difficulty
- *      MT - mean movement time in ms over all trials in the sequence
- *      ErrorRate - error rate (%)
- *      TP - Fitts' throughput in bits per second
  * </pre>
  */
 
@@ -315,13 +239,21 @@ public class ZoomActivity extends Activity
     final String DATA_DIRECTORY = "/ZoomData/";
     final String APP = "Zoom";
     // trial data
-    final String SD1_HEADER = "Participant,Session,Group,Combination,CurrentCombination,TrialIdx,BlockIdx,NumberOfScales,TrialTime(ms)\n";
+    final String SD1_HEADER = "Participant,Session,Group,Combination," +
+            "CurrentCombination,TrialIdx,BlockIdx,TaskType,NumberOfScales,TrialTime(ms)\n";
     // scales per trial data
-    final String SD2_HEADER = "Participant,Session,Group,Combination,CurrentCombination,TrialIdx,BlockIdx,ScaleNum,ScaleTime(ms),ScaleSpan\n";
-    StringBuilder sb1, sb2, sb3, results;
+    final String SD2_HEADER = "Participant,Session,Group,Combination,CurrentCombination,TrialIdx,BlockIdx," +
+            "ScaleNum,ScaleTime(ms),ScaleSpan,ScaleStartTime\n";
+    // per touch data
+    final String SD4_HEADER = "Participant,Session,Group,Combination,CurrentCombination,TrialIdx,BlockIdx," +
+            "ScaleNum,PointerA_X,PointerA_Y,PointerB_X,PointerB_Y,TimeStamp\n";
+    final int REST_TIME = 10;
+    final int RECORD_DATA_TIME_MS = 50;
+
+    StringBuilder sb1, sb2, sb3, sb4, results;
     String participantCode, sessionCode, blockCode, groupCode;
-    BufferedWriter sd1, sd2, sd3;
-    File f1, f2, f3;
+    BufferedWriter sd1, sd2, sd3, sd4;
+    File f1, f2, f3, f4;
 
     ZoomPanel zoomPanel;
     String moveMode;
@@ -341,11 +273,13 @@ public class ZoomActivity extends Activity
     Timer t;
     MediaPlayer changeFingerSound, completeSound;
 
-    boolean firstScale,firstTap;
+    boolean firstScale,firstTap,needRecordData;
     // start first scale of the trial
     long trialStartTime,tapStartTime;
     long currentStartTime;
     float startSpan;
+
+    float[] xP,yP;
     // -----
     /**
      * Called when the activity is first created.
@@ -366,7 +300,8 @@ public class ZoomActivity extends Activity
         conditionCode = b.getInt("conditionCode") + 1;
         moveMode = b.getString("mode");
         // + 2 practice blocks per finger
-        numberOfSessions = b.getInt("numberOfTrials") + 2;
+        // TODO:
+        numberOfSessions = b.getInt("numberOfTrials") + 1;
         numberOfTrials = b.getInt("numberOfTasks");
         inValue = 75;
         outValue = 25;
@@ -389,11 +324,15 @@ public class ZoomActivity extends Activity
         zoomPanel.showFingerCombination = true;
         zoomPanel.showNextValue = false;
         zoomPanel.setStartTarget();
+        zoomPanel.isVisibilityTest = true;
+        zoomPanel.isResting = false;
 
         mScaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
 
         scaleFactor = 0.03f;
         scaleValue = 50f;
+        xP = new float[2];
+        yP = new float[2];
 
         trialValues = new int[numberOfTrials];
         scaleCount = 0;
@@ -410,6 +349,35 @@ public class ZoomActivity extends Activity
         completeSound = MediaPlayer.create(this, R.raw.complete);
     }
 
+    void restTimerCountdown(int time) {
+        zoomPanel.freezing = true;
+        t = new Timer();
+        t.scheduleAtFixedRate(new RestTask(time),  1000,  1000);
+    }
+
+    class RestTask extends  TimerTask {
+        int cur;
+        RestTask(int t) {
+            zoomPanel.isResting = true;
+            cur = t;
+            zoomPanel.restTimer[1] = "0:" + cur;
+            //Log.e(MYDEBUG, "resting start");
+        }
+        public void run() {
+            cur--;
+            zoomPanel.restTimer[1] = "0:" + cur;
+            if (cur < 10)
+                zoomPanel.restTimer[1] = "0:0" + cur;
+            // Log.e(MYDEBUG, String.format("resting %d", cur));
+            if (cur <= 0) {
+                zoomPanel.freezing = false;
+                zoomPanel.isResting = false;
+                showCombination();
+                t.cancel();
+            }
+        }
+    }
+
     void freezeScreen() {
         zoomPanel.freezing = true;
         t = new Timer();
@@ -424,10 +392,9 @@ public class ZoomActivity extends Activity
 
     class LastTrialTask extends  TimerTask {
         LastTrialTask() {
-            zoomPanel.showNextValue = false;
+
         }
         public void run() {
-            zoomPanel.showNextValue = false;
             zoomPanel.freezing = false;
             t.cancel();
             zoomPanel.valueString[0] = "" + Math.round(scaleValue);
@@ -511,7 +478,7 @@ public class ZoomActivity extends Activity
             super.onDestroy(); // cleanup
             this.finish(); // terminate
         }
-        f3 = new File(dataDirectory, "randomTargetOrders-" + numberOfSessions + "-" + numberOfTrials + ".sd3");
+        f3 = new File(dataDirectory, "Zoom-randomTargetOrders-" + numberOfSessions + "-" + numberOfTrials + ".sd3");
         trialOrders = new String[numberOfSessions];
         // read file
         if (f3.exists()) {
@@ -581,9 +548,35 @@ public class ZoomActivity extends Activity
             trialValues[i] = Integer.parseInt(s[i]);
     }
 
+    void recordDataTimer() {
+        t = new Timer();
+        t.schedule(new RecordDataTask(), RECORD_DATA_TIME_MS, RECORD_DATA_TIME_MS);
+    }
+
+    class RecordDataTask extends TimerTask {
+        RecordDataTask() {needRecordData = false;}
+        public void  run() {
+            Long tsLong = System.currentTimeMillis();
+            String ts = tsLong.toString();
+            sb4.append(String.format("%s,%s,%s,%d," +
+                            "%s,%d,%d,%d," +
+                            "%s,%s,%s,%s,%s\n",
+                    participantCode, sessionCode, groupCode, conditionCode,
+                    zoomPanel.combinationString.replaceAll("\\s+", ""),
+                    trialIdx, blockIdx, scaleCount,
+                    xP[0], yP[0], xP[1], yP[1],
+                    ts));
+        }
+    }
+
     public boolean onTouchEvent(MotionEvent me) {
         float x = me.getX();
         float y = me.getY();
+
+        if (zoomPanel.isVisibilityTest) {
+            zoomPanel.isVisibilityTest = false;
+            return true;
+        }
 
         if (zoomPanel.waitStartCircleSelect && me.getAction() == MotionEvent.ACTION_UP)
         {
@@ -601,6 +594,31 @@ public class ZoomActivity extends Activity
             tapStartTime = System.nanoTime();
             firstTap = false;
         }
+
+
+        int count = me.getPointerCount();
+        if (count == 2) {
+            xP[0] = me.getX(0);
+            xP[1] = me.getX(1);
+            yP[0] = me.getY(0);
+            yP[1] = me.getY(1);
+            //if (needRecordData) {
+                //Log.d("Scale Pointers","record data");
+                //Log.d("Scale Pointers", String.format("%d: %.2f, %.2f", i, me.getX(i), me.getY(i)));
+//                Long tsLong = System.currentTimeMillis();
+//                String ts = tsLong.toString();
+//                sb4.append(String.format("%s,%s,%s,%d," +
+//                                "%s,%d,%d,%d," +
+//                                "%s,%s,%s,%s,%s\n",
+//                        participantCode, sessionCode, groupCode, conditionCode,
+//                        zoomPanel.combinationString.replaceAll("\\s+", ""),
+//                        trialIdx, blockIdx, scaleCount,
+//                        xP[0], yP[0], xP[1], yP[1],
+//                        ts));
+                //recordDataTimer();
+            //}
+        }
+
         mScaleGestureDetector.onTouchEvent(me);
         return true;
     }
@@ -623,13 +641,24 @@ public class ZoomActivity extends Activity
         @Override
         public boolean onScaleBegin(ScaleGestureDetector detector) {
             if (!zoomPanel.freezing) {
-                Log.d("ScaleStart", "Start of Scale:" + String.format ("%.2f", detector.getCurrentSpan()));
+                //Log.d("ScaleStart", "Start of Scale:" + String.format ("%.2f", detector.getCurrentSpan()));
                 if (firstScale) {
                     trialStartTime = System.nanoTime();
                     firstScale = false;
                 }
                 startSpan = detector.getCurrentSpan();
                 currentStartTime = System.nanoTime();
+                Long tsLong = System.currentTimeMillis();
+                String ts = tsLong.toString();
+                sb4.append(String.format("%s,%s,%s,%d," +
+                                "%s,%d,%d,%d," +
+                                "%s,%s,%s,%s,%s,Start\n",
+                        participantCode, sessionCode, groupCode, conditionCode,
+                        zoomPanel.combinationString.replaceAll("\\s+", ""),
+                        trialIdx, blockIdx, scaleCount,
+                        xP[0], yP[0], xP[1], yP[1],
+                        ts));
+                recordDataTimer();
             }
             return !zoomPanel.freezing;
         }
@@ -648,9 +677,22 @@ public class ZoomActivity extends Activity
 
         @Override
         public void onScaleEnd(ScaleGestureDetector detector) {
+            if (t != null) {
+                t.cancel();
+            }
+            Long tsLong = System.currentTimeMillis();
+            String ts = tsLong.toString();
+            sb4.append(String.format("%s,%s,%s,%d," +
+                            "%s,%d,%d,%d," +
+                            "%s,%s,%s,%s,%s,End\n",
+                    participantCode, sessionCode, groupCode, conditionCode,
+                    zoomPanel.combinationString.replaceAll("\\s+", ""),
+                    trialIdx, blockIdx, scaleCount,
+                    xP[0], yP[0], xP[1], yP[1],
+                    ts));
             scaleCount++;
             endOfScale(detector.getCurrentSpan()-startSpan);
-            Log.d("ScaleEnd", "End of Scale"+String.format ("%.2f", detector.getCurrentSpan()));
+            //Log.d("ScaleEnd", "End of Scale"+String.format ("%.2f", detector.getCurrentSpan()));
             if (trialValues[trialIdx] == Math.round(scaleValue)) {
                 endOfTrial();
             }
@@ -661,14 +703,16 @@ public class ZoomActivity extends Activity
         long now = System.nanoTime();
         // record if not practise
         String scaleTime = String.format("%.1f", (now - currentStartTime) / 1000000.0f);
-        String span = String.format ("%.2f", dis);;
+        String span = String.format ("%.2f", dis);
+        Long tsLong = System.currentTimeMillis();
+        String ts = tsLong.toString();
         sb2.append(String.format("%s,%s,%s,%s," +
                         "%s,%d,%d," +
-                        "%d,%s,%s\n",
+                        "%d,%s,%s,%s\n",
                 participantCode, sessionCode, groupCode, conditionCode,
                 zoomPanel.combinationString.replaceAll("\\s+", ""),
                 trialIdx, blockIdx,
-                scaleCount, scaleTime, span));
+                scaleCount, scaleTime, span, ts));
     }
 
     void fileInitialize() {
@@ -682,15 +726,15 @@ public class ZoomActivity extends Activity
             this.finish(); // terminate
         }
         int blockNumber = 0;
-        do
-        {
-            ++blockNumber;
-            String baseFilename = String.format("%s-%s-%s-%s-%d", APP, participantCode,
-                    sessionCode, groupCode, conditionCode);
+        Long tsLong = System.currentTimeMillis()/1000;
+        String ts = tsLong.toString();
 
-            f1 = new File(dataDirectory, baseFilename + ".sd1");
-            f2 = new File(dataDirectory, baseFilename + ".sd2");
-        } while (f1.exists() || f2.exists());
+        String baseFilename = String.format("%s-%s-%s-%s-%d-%s", APP, participantCode,
+                    sessionCode, groupCode, conditionCode, ts);
+
+        f1 = new File(dataDirectory, baseFilename + "-trial.sd1");
+        f2 = new File(dataDirectory, baseFilename + "-scale.sd2");
+        f4 = new File(dataDirectory, baseFilename + "-touch.sd4");
 
         try
         {
@@ -706,6 +750,12 @@ public class ZoomActivity extends Activity
             sd2.write(SD2_HEADER, 0, SD2_HEADER.length());
             sd2.flush();
 
+            sd4 = new BufferedWriter(new FileWriter(f4));
+
+            // output header in sd2 file
+            sd4.write(SD4_HEADER, 0, SD4_HEADER.length());
+            sd4.flush();
+
         } catch (IOException e)
         {
             Log.e(MYDEBUG, "ERROR OPENING DATA FILES! e=" + e.toString());
@@ -715,6 +765,7 @@ public class ZoomActivity extends Activity
         }
         sb1 = new StringBuilder();
         sb2 = new StringBuilder();
+        sb4 = new StringBuilder();
         results = new StringBuilder();
         // end file initialization
     }
@@ -724,11 +775,12 @@ public class ZoomActivity extends Activity
         long now = System.nanoTime();
         // String trialTime = String.format("%.1f", (now - trialStartTime) / 1000000.0f);
         String trialTime = String.format("%.1f", (now - tapStartTime) / 1000000.0f);
+        String taskType = (trialValues[trialIdx] == inValue) ? "In" : "Out";
         sb1.append(String.format("%s,%s,%s,%d," +
-                        "%s,%d,%d,%d,%s\n",
+                        "%s,%d,%d,%s,%d,%s\n",
                 participantCode, sessionCode, groupCode, conditionCode,
                 zoomPanel.combinationString.replaceAll("\\s+", ""),
-                trialIdx, blockIdx,
+                trialIdx, blockIdx, taskType,
                 scaleCount, trialTime));
 
         trialIdx++;
@@ -757,15 +809,19 @@ public class ZoomActivity extends Activity
                 sd1.flush();
                 sd2.write(sb2.toString(), 0, sb2.length());
                 sd2.flush();
+                sd4.write(sb4.toString(), 0, sb4.length());
+                sd4.flush();
             } catch (IOException e)
             {
                 Log.d("MYDEBUG", "ERROR WRITING TO DATA FILES: e = " + e);
             }
             sb1.delete(0, sb1.length());
             sb2.delete(0, sb2.length());
+            sb4.delete(0, sb4.length());
 
             sb1 = new StringBuilder();
             sb2 = new StringBuilder();
+            sb4 = new StringBuilder();
             results = new StringBuilder();
 
             // prepare results for output on display
@@ -785,9 +841,8 @@ public class ZoomActivity extends Activity
                 // change to next finger combination
                 if (combinationIdx < numberOfCombinations) {
                     blockIdx = 0;
-                    zoomPanel.showFingerCombination = true;
-                    zoomPanel.combinationString = zoomPanel.combination[combinationOrders[combinationIdx]];
                     changeFingerSound.start();
+                    restTimerCountdown(REST_TIME);
                 } else {
                     zoomPanel.done = true;
                     zoomPanel.showFingerCombination = true;
@@ -796,6 +851,11 @@ public class ZoomActivity extends Activity
                 }
             }
         zoomPanel.waitStartCircleSelect = true;
+    }
+
+    void showCombination() {
+        zoomPanel.showFingerCombination = true;
+        zoomPanel.combinationString = zoomPanel.combination[combinationOrders[combinationIdx]];
     }
 
     // Done! close data files and exit

@@ -19,6 +19,7 @@
     <string name="paramlabelmodetap">Tap</string>
     <string name="paramlabelmodedrag">Drag</string>
     <string name="paramlabelmodezoom">Zoom</string>
+    <string name="paramlabelmodecamera">Camera</string>
     <string name="paramlabelsessionstext">Number of test blocks</string>
     <string name="paramlabeltargetstext">Number of circle targets</string>
     <string name="paramlabeltaskstext">Number of tasks</string>
