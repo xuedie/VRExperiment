@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:background="#ffffff">
+
+    <ca.yorku.cse.mack.fittstouch.ScrollPanel
+        android:id="@+id/scrollpanel"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="vertical" />
+
+    <TextView
+        android:id="@+id/horizontalNum"
+        android:layout_width="32dp"
+        android:layout_height="20dp"
+        android:layout_marginLeft="960px"
+        android:layout_marginTop="800px"
+        android:layout_marginRight="240px"
+        android:gravity="center"
+        android:text="0"
+        android:textColor="@android:color/background_dark"
+        android:textSize="15sp" />
+
+    <LinearLayout
+        android:id="@+id/verticalLeft"
+        android:layout_width="wrap_content"
+        android:layout_height="860px"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="100px"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="32dp"
+            android:layout_height="860px"
+            android:orientation="vertical">
+
+            <SeekBar
+                android:id="@+id/verticalBar_Left"
+                android:layout_width="860px"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:max="100"
+                android:rotation="270" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <SeekBar
+        android:id="@+id/horizontalLongBar"
+        android:layout_width="1720px"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="100px"
+        android:layout_marginRight="100px"
+        android:layout_marginTop="900px"
+        android:max="100" />
+
+    <LinearLayout
+        android:id="@+id/verticalRight"
+        android:layout_width="wrap_content"
+        android:layout_height="860px"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="100px"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="32dp"
+            android:layout_height="860px"
+            android:orientation="vertical">
+
+            <SeekBar
+                android:id="@+id/verticalBar_Right"
+                android:layout_width="860px"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:max="100"
+                android:rotation="270" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <RadioGroup
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="50dp"
+        android:paddingLeft="200dp">
+
+        <RadioButton
+            android:id="@+id/showLeft"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="radioLeftButtonClick"
+            android:text="Left"
+            android:textColor="@android:color/background_dark"/>
+
+        <RadioButton
+            android:id="@+id/showRight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="radioRightButtonClick"
+            android:text="Right"
+            android:textColor="@android:color/background_dark"/>
+
+        <RadioButton
+            android:id="@+id/showLong"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="radioLongButtonClick"
+            android:text="Long"
+            android:textColor="@android:color/background_dark"/>
+
+
+        <RadioButton
+            android:id="@+id/showShort"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="radioShortButtonClick"
+            android:text="Short"
+            android:textColor="@android:color/background_dark"/>
+
+    </RadioGroup>
+</RelativeLayout>

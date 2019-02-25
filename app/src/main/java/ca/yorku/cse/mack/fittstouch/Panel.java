@@ -7,12 +7,6 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
 
-/**
- * ExperimentPanel -- panel to present and sequence the targets
- * <p>
- *
- * @author Scott MacKenzie
- */
 public class Panel extends View
 {
     final int START_TEXT_SIZE = 14; // may need to fiddle with this, depending on device
@@ -81,6 +75,16 @@ public class Panel extends View
 
     public void setStartTarget() {
         startCircle = new Target(Target.CIRCLE, panelWidth / 2, panelHeight - d, d, d, Target.NORMAL);
+    }
+
+    public void hideToolBar() {
+        setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE);
     }
 
     @Override

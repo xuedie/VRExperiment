@@ -380,6 +380,7 @@ public class ZoomActivity extends Activity
 
     void freezeScreen() {
         zoomPanel.freezing = true;
+        zoomPanel.showFingerCombination = false;
         t = new Timer();
         if (trialIdx == 0) {
             t.schedule(new FirstTrialTask(), waitSec0 * 1000);
@@ -407,13 +408,13 @@ public class ZoomActivity extends Activity
             zoomPanel.showNextValue = true;
             zoomPanel.valueString[0] = "" + Math.round(scaleValue);
             zoomPanel.valueString[1] = "" + trialValues[trialIdx];
-            Log.e(MYDEBUG, "FirstTrialTask start");
+            //Log.e(MYDEBUG, "FirstTrialTask start");
         }
         public void run() {
             zoomPanel.showNextValue = false;
             zoomPanel.freezing = false;
             t.cancel();
-            Log.e(MYDEBUG, "FirstTrialTask timeout");
+            //Log.e(MYDEBUG, "FirstTrialTask timeout");
         }
     }
 

@@ -26,7 +26,7 @@ public class FittsTouchSetup extends Activity
      */
     String[] participantCode = {"P99", "P01", "P02", "P03", "P04", "P05", "P06", "P07", "P08",
             "P09", "P10", "P11", "P12", "P13", "P14", "P15", "P16", "P17", "P18", "P19", "P20",
-            "P21", "P22", "P23", "P24", "P25"};
+            "P21", "P22", "P23", "P24", "P25", "P26", "P27", "P28", "P29", "P30"};
     String[] sessionCode = {"S99", "S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09",
             "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17", "S18", "S19", "S20", "S21",
             "S22", "S23", "S24", "S25"};
@@ -61,7 +61,7 @@ public class FittsTouchSetup extends Activity
     SharedPreferences sp;
     SharedPreferences.Editor spe;
     private Spinner spinParticipant, spinSession, spinGroup, spinCondition;
-    private RadioButton radioButtonMode1D, radioButtonModeZoom;
+    private RadioButton radioButtonMode1D, radioButtonModeZoom, radioButtonModeScroll;
     private Spinner spinNumTrials, spinNumTasks;
     private Spinner spinNumTargetColumn, spinNumTargetRow;
     private CheckBox checkVibrotactileFeedback;
@@ -119,6 +119,7 @@ public class FittsTouchSetup extends Activity
         //spinMode = (Spinner) findViewById(R.id.paramMode);
         radioButtonMode1D = (RadioButton)findViewById(R.id.paramMode1D);
         radioButtonModeZoom = (RadioButton)findViewById(R.id.paraModeZoom);
+        radioButtonModeScroll = (RadioButton)findViewById(R.id.paraModeScroll);
         spinNumTrials = (Spinner)findViewById(R.id.paramTrials);
         spinNumTasks = (Spinner)findViewById(R.id.paramTasks);
         spinNumTargetColumn = (Spinner)findViewById(R.id.paramTargetColumn);
@@ -265,6 +266,8 @@ public class FittsTouchSetup extends Activity
             i = new Intent(getApplicationContext(), FittsTouchActivity.class);
         } else if (moveMode.equals("Zoom")){
             i = new Intent(getApplicationContext(), ZoomActivity.class);
+        } else if (moveMode.equals("Scroll")){
+            i = new Intent(getApplicationContext(), ScrollActivity.class);
         } else {
             i = new Intent(getApplicationContext(), CameraActivity.class);
         }
@@ -289,10 +292,6 @@ public class FittsTouchSetup extends Activity
         spe.putBoolean("auditoryFeedback", checkAuditoryFeedback.isChecked());
         spe.apply();
         Toast.makeText(this, "Preferences saved!", Toast.LENGTH_SHORT).show();
-
-        view.setSystemUiVisibility(
-                view.SYSTEM_UI_FLAG_IMMERSIVE | view.SYSTEM_UI_FLAG_FULLSCREEN | view.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                        view.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
 
     // called when the "Exit" button is pressed
@@ -318,7 +317,14 @@ public class FittsTouchSetup extends Activity
             rowTasks.setVisibility(View.VISIBLE);
             rowTrialText.setVisibility(View.GONE);
             rowTrial.setVisibility(View.GONE);
-        } else {
+        }
+        else if (v == radioButtonModeScroll){
+            moveMode = "Scroll";
+            rowTasks.setVisibility(View.GONE);
+            rowTrialText.setVisibility(View.VISIBLE);
+            rowTrial.setVisibility(View.VISIBLE);
+        }
+        else {
             moveMode = "Camera";
             rowTasks.setVisibility(View.GONE);
             rowTrialText.setVisibility(View.VISIBLE);

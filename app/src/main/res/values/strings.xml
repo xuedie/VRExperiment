@@ -20,6 +20,7 @@
     <string name="paramlabelmodedrag">Drag</string>
     <string name="paramlabelmodezoom">Zoom</string>
     <string name="paramlabelmodecamera">Camera</string>
+    <string name="paramlabelmodescroll">Scroll</string>
     <string name="paramlabelsessionstext">Number of test blocks</string>
     <string name="paramlabeltargetstext">Number of circle targets</string>
     <string name="paramlabeltaskstext">Number of tasks</string>
@@ -30,5 +31,9 @@
     <string name="paramvibrotactilefeedbacktext">Vibrotactile feedback</string>
     <string name="paramauditoryfeedbacktext">Auditory feedback</string>
     <string name="title_activity_zoom">ZoomActivity</string>
+
+    <string name="title_activity_scroll">ScrollActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 
 </resources>

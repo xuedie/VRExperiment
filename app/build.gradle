@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "ca.yorku.cse.mack.fittstouch"
-        minSdkVersion 12
+        minSdkVersion 14
         targetSdkVersion 23
     }
 
@@ -20,4 +20,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
+}
+
+dependencies {
+    implementation 'com.android.support:support-v4:23.+'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
 }
