@@ -19,9 +19,9 @@ public class ScrollPanel extends Panel
     String[] visibilityWords = {"zh","kx","ov","hw","ui","eg","ut","gf"};
     String[] resultsString = {""};
     String instructionString = "Tap to continue";
-    String[] valueString = {"50", "50"};
-    String[] combination = {"Index and Middle Fingers", "Index Finger and Thumb", "Both Thumbs", "Both Index Fingers"};
+    String[] combination = {"Right Index Finger", "Left Index Finger", "Both Thumbs"};
     String combinationString = "Right Index Finger";
+    String[] valueString = {"50", "50"};
 
     public ScrollPanel(Context contextArg)
     {
@@ -122,6 +122,18 @@ public class ScrollPanel extends Panel
         if (showFingerCombination) {
             float w = fingerPaint.measureText(combinationString, 0, combinationString.length());
             canvas.drawText(combinationString, (panelWidth - w) / 2, panelHeight / 2 , fingerPaint);
+        }
+
+        if (!waitStartCircleSelect) {
+            Paint p = startPaint;
+            p.setTextSize(textSize * 2);
+            canvas.drawText("Current", panelWidth / 4, panelHeight / 5 * 2 - 100, p);
+            p.setTextSize(textSize * 5);
+            canvas.drawText(valueString[0], panelWidth / 2, panelHeight / 5 * 2, p);
+            p.setTextSize(textSize * 2);
+            canvas.drawText("Scroll to", panelWidth / 4, panelHeight / 5 * 4 - 100, p);
+            p.setTextSize(textSize * 5);
+            canvas.drawText(valueString[1], panelWidth / 2, panelHeight / 5 * 4, p);
         }
         invalidate(); // will cause onDraw to run again immediately
     }

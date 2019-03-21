@@ -320,9 +320,10 @@ public class FittsTouchSetup extends Activity
         }
         else if (v == radioButtonModeScroll){
             moveMode = "Scroll";
+            spinCondition.setAdapter(adapterCT);
             rowTasks.setVisibility(View.GONE);
-            rowTrialText.setVisibility(View.VISIBLE);
-            rowTrial.setVisibility(View.VISIBLE);
+            rowTrialText.setVisibility(View.GONE);
+            rowTrial.setVisibility(View.GONE);
         }
         else {
             moveMode = "Camera";
